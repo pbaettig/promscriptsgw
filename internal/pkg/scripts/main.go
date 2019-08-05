@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
+	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func isExecutable(p string) bool {
@@ -33,7 +35,7 @@ func List(dir string) ([]string, error) {
 	for _, f := range ff {
 		fp := path.Join(dir, f.Name())
 		if !isExecutable(fp) {
-			log.Println("skipping", fp)
+			log.Debugf("%s is not executable, skipping.", fp)
 			continue
 		}
 
@@ -79,4 +81,48 @@ func RunAsync(ctx context.Context, name string, args []string) <-chan ExecResult
 	}()
 
 	return out
+}
+
+type mutexedBuffer struct {
+	Buf   bytes.Buffer
+	Mutex sync.Mutex
+}
+
+// RunAll runs all the scripts in the specified directory and returns
+// a  Buffer with the collected Stdouts
+func RunAll(ctx context.Context, dir string, scriptTimeout time.Duration) bytes.Buffer {
+	ss, _ := List(dir)
+	wg := new(sync.WaitGroup)
+
+	var mbuf mutexedBuffer
+
+	for _, sp := range ss {
+		wg.Add(1)
+		go func(scriptPath string) {
+			slog := log.WithFields(log.Fields{
+				"script": scriptPath,
+			})
+
+			ctx, cancel := context.WithTimeout(ctx, scriptTimeout)
+			defer cancel()
+			defer wg.Done()
+
+			slog.Debugf("starting")
+			rc := RunAsync(ctx, scriptPath, []string{})
+			r := <-rc
+
+			if r.Err != nil {
+				slog.Error(r.Err.Error())
+				return
+			}
+			slog.Debugf("finished successfully. ran for %s", time.Now().Sub(r.StartTime))
+
+			mbuf.Mutex.Lock()
+			defer mbuf.Mutex.Unlock()
+			r.Stdout.WriteTo(&mbuf.Buf)
+		}(sp)
+	}
+
+	wg.Wait()
+	return mbuf.Buf
 }
