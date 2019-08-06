@@ -35,7 +35,6 @@ func List(dir string) ([]string, error) {
 	for _, f := range ff {
 		fp := path.Join(dir, f.Name())
 		if !isExecutable(fp) {
-			log.Debugf("%s is not executable, skipping.", fp)
 			continue
 		}
 
@@ -77,13 +76,15 @@ func RunAsync(ctx context.Context, name string, args []string) <-chan ExecResult
 		}
 
 		result.State = cmd.ProcessState
+
 		out <- result
 	}()
 
 	return out
 }
 
-type mutexedBuffer struct {
+// MutexedBuffer ...
+type MutexedBuffer struct {
 	Buf   bytes.Buffer
 	Mutex sync.Mutex
 }
@@ -94,7 +95,7 @@ func RunAll(ctx context.Context, dir string, scriptTimeout time.Duration) bytes.
 	ss, _ := List(dir)
 	wg := new(sync.WaitGroup)
 
-	var mbuf mutexedBuffer
+	var mbuf MutexedBuffer
 
 	for _, sp := range ss {
 		wg.Add(1)
@@ -115,7 +116,6 @@ func RunAll(ctx context.Context, dir string, scriptTimeout time.Duration) bytes.
 				slog.Error(r.Err.Error())
 				return
 			}
-			slog.Debugf("finished successfully. ran for %s", time.Now().Sub(r.StartTime))
 
 			mbuf.Mutex.Lock()
 			defer mbuf.Mutex.Unlock()
