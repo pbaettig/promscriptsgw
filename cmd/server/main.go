@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -36,49 +36,63 @@ func init() {
 		&flagCollectionInterval,
 		"collection-interval",
 		10*time.Second,
-		"interval for script execution / metrics collection")
+		"`interval` for script execution / metrics collection")
 
 	flag.StringVar(
 		&flagScriptDir,
 		"script-dir",
-		"/tmp/scripts",
-		"directory to search for scripts")
+		"",
+		"the program will look for executables in `directory` (required)")
 
 	flag.DurationVar(
 		&flagScriptTimeout,
 		"script-timeout",
 		1*time.Second,
-		"timeout for script")
+		"any executable running for longer than the `timeout` value will be killed")
 
 	flag.StringVar(
 		&flagMetricsNamespace,
 		"metrics-namespace",
-		"ACME Ltd.",
-		"namespace for prometheus metrics")
+		"",
+		"sets the `namespace` portion of the name for all the metrics created by this program")
 
 	flag.StringVar(
 		&flagMetricsSubsystem,
 		"metrics-subsystem",
 		"",
-		"prometheus metrics subsystem")
+		"sets the `subsystem` portion of the  name for all the metrics created by this program")
 
 	flag.StringVar(
 		&flagListenAddr,
 		"listen-addr",
 		":9000",
-		"ip:port for the server to listen on")
+		"`address` the server will listen on")
 
-	if flagMetricsSubsystem == "" {
-		hn, err := os.Hostname()
-		if err != nil {
-			log.Fatal("unable to determine system hostname, set -metrics-subsystem to disable hostname lookup")
-		}
-		flagMetricsSubsystem = hn
+	flag.Parse()
+
+	if flagScriptDir == "" {
+		log.Fatal("-script-dir is required")
+	}
+
+	if !checkMetricName(flagMetricsNamespace) {
+		log.Fatalf("namespace \"%s\" is not a valid component for a prometheus metric name", flagMetricsNamespace)
+	}
+	if !checkMetricName(flagMetricsSubsystem) {
+		log.Fatalf("subsystem \"%s\" is not a valid component for a prometheus metric name", flagMetricsSubsystem)
 	}
 
 	promRegistry = prometheus.NewRegistry()
 	gauges = make(map[string]*prometheus.GaugeVec)
 	runtimeGaugeName = "script_runtime_seconds"
+}
+
+func checkMetricName(n string) bool {
+	if n == "" {
+		return true
+	}
+
+	match, _ := regexp.MatchString("^[a-zA-Z0-9_]+$", n)
+	return match
 }
 
 func parseScriptOutputLine(line string) (name string, value float64, err error) {
@@ -99,20 +113,25 @@ type collectorValue struct {
 	value float64
 }
 
-func createAndRegisterGauge(opts prometheus.GaugeOpts) *prometheus.GaugeVec {
-	g, ok := gauges[opts.Name]
+func createAndRegisterGauge(name, help string) *prometheus.GaugeVec {
+	g, ok := gauges[name]
 	if !ok {
 		g = prometheus.NewGaugeVec(
-			opts,
+			prometheus.GaugeOpts{
+				Namespace: flagMetricsNamespace,
+				Subsystem: flagMetricsSubsystem,
+				Name:      name,
+				Help:      help,
+			},
 			[]string{"script_name"},
 		)
 
-		gauges[opts.Name] = g
 		err := promRegistry.Register(g)
 		if err != nil {
 			log.Errorf("unable to register collector: %s", err.Error())
 		} else {
-			log.Debugf("registered new gauge vector collector for \"%s\"", opts.Name)
+			log.Debugf("registered new gauge vector collector for \"%s\"", name)
+			gauges[name] = g
 		}
 	}
 
@@ -120,18 +139,18 @@ func createAndRegisterGauge(opts prometheus.GaugeOpts) *prometheus.GaugeVec {
 }
 
 func updateMetric(r scripts.ExecResult) error {
+	var g *prometheus.GaugeVec
+
 	stdout, err := ioutil.ReadAll(&r.Stdout)
 	if err != nil {
 		return err
 	}
 
 	// add a gauge for script runtime
-	g := createAndRegisterGauge(
-		prometheus.GaugeOpts{
-			Name: runtimeGaugeName,
-			Help: "script runtime in seconds",
-		},
-	)
+	g = createAndRegisterGauge(runtimeGaugeName, "script runtime in seconds")
+	if g == nil {
+		log.Error("uh oh")
+	}
 	g.WithLabelValues(r.Command).Set(time.Now().Sub(r.StartTime).Seconds())
 
 	for _, l := range strings.Split(string(stdout), "\n") {
@@ -145,13 +164,10 @@ func updateMetric(r scripts.ExecResult) error {
 			return err
 		}
 
-		g = createAndRegisterGauge(
-			prometheus.GaugeOpts{
-				Name: n,
-				Help: "",
-			},
-		)
-
+		g = createAndRegisterGauge(n, "")
+		if g == nil {
+			log.Error("uh oh")
+		}
 		g.WithLabelValues(r.Command).Set(v)
 	}
 
@@ -161,7 +177,7 @@ func updateMetric(r scripts.ExecResult) error {
 // runs scripts, parse output, create the appropriate collectors
 // and update the values
 func executeAndCollect() {
-	ss, _ := scripts.List("/tmp/scripts")
+	ss, _ := scripts.List(flagScriptDir)
 	bgCtx := context.Background()
 	wg := new(sync.WaitGroup)
 
@@ -182,15 +198,15 @@ func executeAndCollect() {
 			r := <-rc
 
 			if r.Err != nil {
-				slog.Error(r.Err.Error())
+				slog.Errorf("  - %s", r.Err.Error())
 				return
 			}
-			slog.Debugf("finished successfully. ran for %s", time.Now().Sub(r.StartTime))
+			slog.Debugf("  - finished successfully. ran for %s", time.Now().Sub(r.StartTime))
 
 			// update the metric with the script result
 			err := updateMetric(r)
 			if err != nil {
-				log.Errorf("failed to update metric")
+				log.Errorf("  - failed to update metric")
 			}
 
 		}(sp)
@@ -208,7 +224,7 @@ func collectionLoop() {
 		for {
 			select {
 			case <-ticker.C:
-				log.Debug("updating metrics")
+				log.Debug("running scripts and updating metrics")
 				executeAndCollect()
 			}
 		}
@@ -218,11 +234,15 @@ func collectionLoop() {
 
 func main() {
 	log.SetLevel(log.DebugLevel)
+
+	log.Infof("looking for executable scripts in \"%s\"", flagScriptDir)
+
 	collectionLoop()
 	http.Handle("/metrics", promhttp.HandlerFor(promRegistry, promhttp.HandlerOpts{
 		ErrorLog:      log.StandardLogger(),
 		ErrorHandling: 1,
 	}))
 
-	log.Fatal(http.ListenAndServe(":9000", nil))
+	log.Infof("listening for requests on %s", flagListenAddr)
+	log.Fatal(http.ListenAndServe(flagListenAddr, nil))
 }
