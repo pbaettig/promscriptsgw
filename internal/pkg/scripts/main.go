@@ -83,21 +83,20 @@ func RunAsync(ctx context.Context, name string, args []string) <-chan ExecResult
 	return out
 }
 
-// MutexedBuffer ...
+// MutexedBuffer wraps a Buffer and Mutex object
 type MutexedBuffer struct {
 	Buf   bytes.Buffer
 	Mutex sync.Mutex
 }
 
-// RunAll runs all the scripts in the specified directory and returns
+// RunAll runs all the scripts and returns
 // a  Buffer with the collected Stdouts
-func RunAll(ctx context.Context, dir string, scriptTimeout time.Duration) bytes.Buffer {
-	ss, _ := List(dir)
+func RunAll(ctx context.Context, scripts []string, scriptTimeout time.Duration) bytes.Buffer {
 	wg := new(sync.WaitGroup)
 
 	var mbuf MutexedBuffer
 
-	for _, sp := range ss {
+	for _, sp := range scripts {
 		wg.Add(1)
 		go func(scriptPath string) {
 			slog := log.WithFields(log.Fields{

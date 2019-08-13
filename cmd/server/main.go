@@ -25,8 +25,10 @@ var (
 	flagScriptTimeout      time.Duration
 	flagMetricsNamespace   string
 	flagMetricsSubsystem   string
+	flagListenAddr         string
 	promRegistry           *prometheus.Registry
 	gauges                 map[string]*prometheus.GaugeVec
+	runtimeGaugeName       string
 )
 
 func init() {
@@ -60,6 +62,12 @@ func init() {
 		"",
 		"prometheus metrics subsystem")
 
+	flag.StringVar(
+		&flagListenAddr,
+		"listen-addr",
+		":9000",
+		"ip:port for the server to listen on")
+
 	if flagMetricsSubsystem == "" {
 		hn, err := os.Hostname()
 		if err != nil {
@@ -70,7 +78,7 @@ func init() {
 
 	promRegistry = prometheus.NewRegistry()
 	gauges = make(map[string]*prometheus.GaugeVec)
-
+	runtimeGaugeName = "script_runtime_seconds"
 }
 
 func parseScriptOutputLine(line string) (name string, value float64, err error) {
@@ -86,11 +94,45 @@ func parseScriptOutputLine(line string) (name string, value float64, err error) 
 	return
 }
 
+type collectorValue struct {
+	name  string
+	value float64
+}
+
+func createAndRegisterGauge(opts prometheus.GaugeOpts) *prometheus.GaugeVec {
+	g, ok := gauges[opts.Name]
+	if !ok {
+		g = prometheus.NewGaugeVec(
+			opts,
+			[]string{"script_name"},
+		)
+
+		gauges[opts.Name] = g
+		err := promRegistry.Register(g)
+		if err != nil {
+			log.Errorf("unable to register collector: %s", err.Error())
+		} else {
+			log.Debugf("registered new gauge vector collector for \"%s\"", opts.Name)
+		}
+	}
+
+	return g
+}
+
 func updateMetric(r scripts.ExecResult) error {
 	stdout, err := ioutil.ReadAll(&r.Stdout)
 	if err != nil {
 		return err
 	}
+
+	// add a gauge for script runtime
+	g := createAndRegisterGauge(
+		prometheus.GaugeOpts{
+			Name: runtimeGaugeName,
+			Help: "script runtime in seconds",
+		},
+	)
+	g.WithLabelValues(r.Command).Set(time.Now().Sub(r.StartTime).Seconds())
 
 	for _, l := range strings.Split(string(stdout), "\n") {
 		if l == "" {
@@ -103,39 +145,25 @@ func updateMetric(r scripts.ExecResult) error {
 			return err
 		}
 
-		g, ok := gauges[n]
-		if !ok {
-			log.Debugf("registering new gauge vector collector for \"%s\"", n)
-			g = prometheus.NewGaugeVec(
-				prometheus.GaugeOpts{
-					// Namespace: "our_company",
-					// Subsystem: "blob_storage",
-					Name: n,
-					Help: "",
-				},
-				[]string{
-					"script_name",
-				},
-			)
-			gauges[n] = g
+		g = createAndRegisterGauge(
+			prometheus.GaugeOpts{
+				Name: n,
+				Help: "",
+			},
+		)
 
-			err := promRegistry.Register(g)
-			if err != nil {
-				log.Errorf("unable to register gauge \"%s\"", n)
-			}
-		}
 		g.WithLabelValues(r.Command).Set(v)
 	}
 
 	return nil
 }
 
+// runs scripts, parse output, create the appropriate collectors
+// and update the values
 func executeAndCollect() {
 	ss, _ := scripts.List("/tmp/scripts")
 	bgCtx := context.Background()
 	wg := new(sync.WaitGroup)
-
-	// var buf scripts.MutexedBuffer
 
 	// Go through all the scripts...
 	for _, sp := range ss {
@@ -159,15 +187,12 @@ func executeAndCollect() {
 			}
 			slog.Debugf("finished successfully. ran for %s", time.Now().Sub(r.StartTime))
 
+			// update the metric with the script result
 			err := updateMetric(r)
 			if err != nil {
-
+				log.Errorf("failed to update metric")
 			}
 
-			// buf.Mutex.Lock()
-			// defer buf.Mutex.Unlock()
-
-			// r.Stdout.WriteTo(&buf.Buf)
 		}(sp)
 	}
 	wg.Wait()
@@ -179,6 +204,7 @@ func collectionLoop() {
 	go func() {
 		defer ticker.Stop()
 		executeAndCollect()
+
 		for {
 			select {
 			case <-ticker.C:
@@ -194,6 +220,7 @@ func main() {
 	log.SetLevel(log.DebugLevel)
 	collectionLoop()
 	http.Handle("/metrics", promhttp.HandlerFor(promRegistry, promhttp.HandlerOpts{
+		ErrorLog:      log.StandardLogger(),
 		ErrorHandling: 1,
 	}))
 
