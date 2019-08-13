@@ -103,6 +103,10 @@ func parseScriptOutputLine(line string) (name string, value float64, err error) 
 		return "", 0, fmt.Errorf("\"%s\" does not match expected format", lineStrip)
 	}
 
+	if !checkMetricName(split[0]) {
+		return "", 0, fmt.Errorf("\"%s\" is not a valid prometheus metric name", split[0])
+	}
+
 	name = split[0]
 	value, err = strconv.ParseFloat(strings.TrimSpace(split[1]), 64)
 	return
@@ -160,14 +164,10 @@ func updateMetric(r scripts.ExecResult) error {
 
 		n, v, err := parseScriptOutputLine(l)
 		if err != nil {
-			log.Warnf("cannot convert script output \"%s\"", l)
 			return err
 		}
 
 		g = createAndRegisterGauge(n, "")
-		if g == nil {
-			log.Error("uh oh")
-		}
 		g.WithLabelValues(r.Command).Set(v)
 	}
 
@@ -206,7 +206,7 @@ func executeAndCollect() {
 			// update the metric with the script result
 			err := updateMetric(r)
 			if err != nil {
-				log.Errorf("  - failed to update metric")
+				slog.Errorf("  - cannot update metric: %s", err.Error())
 			}
 
 		}(sp)
