@@ -1,7 +1,10 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/pbaettig/promscriptsgw/internal/app"
 	"github.com/pbaettig/promscriptsgw/internal/cfg"
@@ -11,9 +14,20 @@ import (
 )
 
 func main() {
+	var (
+		flagVersion bool
+	)
+
+	flag.BoolVar(&flagVersion, "version", false, "display version information")
+
 	err := cfg.FromCommandline()
 	if err != nil {
 		log.Fatal(err.Error())
+	}
+
+	if flagVersion {
+		fmt.Println(version)
+		os.Exit(0)
 	}
 
 	if cfg.Debug {
