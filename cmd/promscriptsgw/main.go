@@ -21,13 +21,14 @@ func main() {
 	flag.BoolVar(&flagVersion, "version", false, "display version information")
 
 	err := cfg.FromCommandline()
-	if err != nil {
-		log.Fatal(err.Error())
-	}
 
 	if flagVersion {
 		fmt.Println(version)
 		os.Exit(0)
+	}
+
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 
 	if cfg.Debug {
