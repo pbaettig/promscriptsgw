@@ -34,6 +34,9 @@ var (
 
 	// MetricsURL is the URL the metrics will be exposed
 	MetricsURL string
+
+	// Debug is a flag enabling more verbose log output
+	Debug bool
 )
 
 func init() {
@@ -63,6 +66,7 @@ func FromCommandline() error {
 		flagMetricsNamespace   string
 		flagMetricsSubsystem   string
 		flagListenAddr         string
+		flagDebug              bool
 	)
 
 	flag.DurationVar(
@@ -101,6 +105,12 @@ func FromCommandline() error {
 		":9000",
 		"`address` the server will listen on")
 
+	flag.BoolVar(
+		&flagDebug,
+		"debug",
+		false,
+		"increase log verbosity")
+
 	flag.Parse()
 
 	if flagScriptDir == "" {
@@ -120,6 +130,7 @@ func FromCommandline() error {
 	MetricsNamespace = flagMetricsNamespace
 	MetricsSubsystem = flagMetricsSubsystem
 	ListenAddr = flagListenAddr
+	Debug = flagDebug
 
 	return nil
 
