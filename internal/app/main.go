@@ -146,7 +146,7 @@ func executeAndCollect() {
 	wg.Wait()
 }
 
-func CollectionLoop() {
+func CollectionLoop(ctx context.Context) {
 	ticker := time.NewTicker(cfg.CollectionInterval)
 
 	go func() {
@@ -158,8 +158,11 @@ func CollectionLoop() {
 			case <-ticker.C:
 				log.Debug("running scripts and updating metrics")
 				executeAndCollect()
+
+			case <-ctx.Done():
+				log.Debug("exiting collection loop")
+				return
 			}
 		}
-
 	}()
 }
