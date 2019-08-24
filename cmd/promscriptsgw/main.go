@@ -54,42 +54,49 @@ func main() {
 		flagVersion bool
 	)
 
+	// add -version flag not in cfg package because it's not program config
 	flag.BoolVar(&flagVersion, "version", false, "display version information")
 
+	// parse commandline arguments
 	err := cfg.FromCommandline()
 
+	// check for -version flag...
 	if flagVersion {
 		fmt.Println(version)
 		os.Exit(0)
 	}
 
+	// ...before handling errors (missing required options, wrong values, etc.)
+	// from the commandline parsing
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
+	if cfg.Debug {
+		log.SetLevel(log.DebugLevel)
+	}
+
+	// waitGroup to wait for goroutines (HTTP server and collection loop)
+	wg := new(sync.WaitGroup)
 
 	// set up cancellable context for the collection loop
 	clCtx, clCancel := context.WithCancel(context.Background())
 	defer clCancel()
 
-	// waitGroup to wait for the HTTP server to exit
-	srvWait := new(sync.WaitGroup)
-	srv := startHTTPServer(srvWait)
+	// Start HTTP endpoint
+	srv := startHTTPServer(wg)
+	log.Infof("listening for requests on %s", cfg.ListenAddr)
 
 	// set up signal handling
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go signalHandler(sigs, clCancel, srv)
 
-	if cfg.Debug {
-		log.SetLevel(log.DebugLevel)
-	}
-
 	log.Infof("looking for executable scripts in \"%s\"", cfg.ScriptDir)
 
 	// Start metrics collection loop
-	app.CollectionLoop(clCtx)
+	app.CollectionLoop(clCtx, wg)
 
-	log.Infof("listening for requests on %s", cfg.ListenAddr)
-	srvWait.Wait()
+	wg.Wait()
 	log.Info("goodbye!")
 }

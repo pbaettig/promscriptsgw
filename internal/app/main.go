@@ -146,16 +146,21 @@ func executeAndCollect() {
 	wg.Wait()
 }
 
-func CollectionLoop(ctx context.Context) {
+func CollectionLoop(ctx context.Context, wg *sync.WaitGroup) {
 	ticker := time.NewTicker(cfg.CollectionInterval)
 
+	wg.Add(1)
 	go func() {
 		defer ticker.Stop()
+		defer wg.Done()
+
+		// first run
 		executeAndCollect()
 
 		for {
 			select {
 			case <-ticker.C:
+				// periodically execute
 				log.Debug("running scripts and updating metrics")
 				executeAndCollect()
 
