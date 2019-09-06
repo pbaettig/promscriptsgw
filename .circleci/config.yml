@@ -21,10 +21,10 @@ jobs:
       - run:
           name: install dependencies
           command: |
-          go get -v github.com/sirupsen/logrus \
-          github.com/prometheus/client_golang/prometheus/promhttp \
-          github.com/prometheus/client_golang/prometheus \
-          github.com/konsorten/go-windows-terminal-sequences
+            go get -v github.com/sirupsen/logrus \
+            github.com/prometheus/client_golang/prometheus/promhttp \
+            github.com/prometheus/client_golang/prometheus \
+            github.com/konsorten/go-windows-terminal-sequences
   
       - run: pwd; ls -lah
       - run:
