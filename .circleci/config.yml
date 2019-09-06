@@ -53,7 +53,7 @@ jobs:
       
       - run:
           name: copy GitHub release script
-          command: cp go/src/github.com/pbaettig/promscriptsgw/.circleci/publish_github_release.sh .
+          command: cp /go/src/github.com/pbaettig/promscriptsgw/.circleci/publish_github_release.sh .
     
       - persist_to_workspace:
           root: .

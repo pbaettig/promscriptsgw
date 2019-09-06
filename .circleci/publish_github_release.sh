@@ -24,6 +24,7 @@ upload_url=$(curl -Ssf -d"
 sleep 2
 
 for file in $FILES; do
+    echo "uploading $file ..."
     curl -Ssf \
         -XPOST \
         --data-binary "@${file}" \
