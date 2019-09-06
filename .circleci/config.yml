@@ -33,7 +33,7 @@ jobs:
           command: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1:0:7}\"/g" /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/version.go
       
       - run:
-          name: Build linux binaries
+          name: build linux binaries
           command: go build -o promscriptsgw_linux_amd64 /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/*.go
           environment:
             GOOS: linux
@@ -51,13 +51,15 @@ jobs:
             GOOS: windows
             GOARCH: amd64
       
-      - run: pwd; ls -lah
-
+      - run:
+          name: copy GitHub release script
+          command: cp go/src/github.com/pbaettig/promscriptsgw/.circleci/publish_github_release.sh .
+    
       - persist_to_workspace:
-          root: /
+          root: .
           paths:
-            - home/circleci/project/promscriptsgw_*
-            - go/src/github.com/pbaettig/promscriptsgw/.circleci/publish_github_release.sh
+            - promscriptsgw_*
+            - publish_github_release.sh
 
       - save_cache: 
           key: logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
