@@ -79,7 +79,9 @@ jobs:
           name: list workspace
           command: ls -lah /tmp/ws
 
-      - run: bash /tmp/ws/publish_github_release.sh
+      - run:
+          name: Create GitHub Release
+          command: bash /tmp/ws/publish_github_release.sh
           environment:
             DRAFT: "true"
             FILES: "/tmp/ws/promscriptsgw_*"
