@@ -70,8 +70,8 @@ jobs:
       - image: circleci/golang:1.12 # because it has curl
     steps:
       - run:
-        name: create workspace folder
-        command: mkdir -p /builds
+          name: create workspace folder
+          command: mkdir -p /builds
       - attach_workspace:
           at: /builds
       - run:
