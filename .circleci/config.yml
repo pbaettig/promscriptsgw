@@ -21,13 +21,13 @@ jobs:
       - run: cd /go/src/github.com/promscriptsgw/cmd; go build -o promscriptsgw *.go
 
       - save_cache: 
-          keys:
+          key:
             - logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
           paths:
             - /go/pkg/linux_amd64/github.com/sirupsen
       
       - save_cache:
-          keys:
+          key:
             - prometheus-{{ checksum "/go/pkg/linux_amd64/github.com/prometheus/client_golang/prometheus.a" }}
           paths:
             - /go/pkg/linux_amd64/github.com/prometheus/client_golang/
