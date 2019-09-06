@@ -5,9 +5,11 @@ jobs:
     docker:
       - image: circleci/golang:1.12
         environment:
-          GOPATH: /home/circleci/project
+          GOPATH: /go
     steps:
-      - checkout
+      - run: mkdir -p /go/src/github.com/pbaettig/promscriptsgw
+      - checkout:
+          path: /go/src/github.com/pbaettig/promscriptsgw
       - restore_cache:
           keys:
             - logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
