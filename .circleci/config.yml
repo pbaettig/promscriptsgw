@@ -17,7 +17,7 @@ jobs:
       - run: go get -v github.com/sirupsen/logrus github.com/prometheus/client_golang/prometheus/promhttp github.com/prometheus/client_golang/prometheus
 
       - run: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1}\"/g" version.go
-
+      - run: pwd; ls -lah
       - run: cd /go/src/github.com/promscriptsgw/cmd; go build -o promscriptsgw *.go
 
       - save_cache: 
