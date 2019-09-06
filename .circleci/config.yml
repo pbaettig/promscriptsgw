@@ -51,6 +51,8 @@ jobs:
             GOOS: windows
             GOARCH: amd64
       
+      - run: ls -lah
+
       - persist_to_workspace:
           root: .
           paths:
