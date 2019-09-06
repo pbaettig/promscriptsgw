@@ -7,7 +7,9 @@ jobs:
         environment:
           GOPATH: /go
     steps:
-      - run: mkdir -p /go/src/github.com/pbaettig/promscriptsgw
+      - run:
+          name: create folder structure
+          command: mkdir -p /go/src/github.com/pbaettig/promscriptsgw
       - checkout:
           path: /go/src/github.com/pbaettig/promscriptsgw
       - restore_cache:
@@ -17,7 +19,7 @@ jobs:
       - restore_cache:
           keys:
             - prometheus-{{ checksum "/go/pkg/linux_amd64/github.com/prometheus/client_golang/prometheus.a" }}
-
+      - run: env
       - run:
           name: install dependencies
           command: |
@@ -26,7 +28,6 @@ jobs:
             github.com/prometheus/client_golang/prometheus \
             github.com/konsorten/go-windows-terminal-sequences
   
-      - run: pwd; ls -lah
       - run:
           name: update version in source
           command: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1:0:7}\"/g" /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/version.go
@@ -66,7 +67,7 @@ workflows:
   build-workflow:
     jobs:
       - build
-      # - deploy:
+      # - publish:
       #     requires:
       #       - build
       #     filters:
