@@ -71,12 +71,12 @@ jobs:
     steps:
       - run:
           name: create workspace folder
-          command: mkdir -p /builds
+          command: mkdir /tmp/builds
       - attach_workspace:
-          at: /builds
+          at: /tmp/builds
       - run:
           name: list builds
-          command: ls -lah /builds
+          command: ls -lah /tmp/builds
     
 
 workflows:
