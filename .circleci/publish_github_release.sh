@@ -9,7 +9,7 @@ if [[ -z $FILES ]]; then
     exit 1
 fi
 
-if [[ -z $CIRCLE_TAG]]; then
+if [[ -z $CIRCLE_TAG ]]; then
     tag="${CIRCLE_SHA1:0:7}"
     name="${CIRCLE_SHA1:0:7}"
 else
