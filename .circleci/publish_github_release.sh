@@ -22,7 +22,6 @@ upload_url=$(curl -Ssf -d"
 | jq -r .upload_url | cut -d'{' -f1)
 
 sleep 2
-export IFS=";"
 
 for file in $FILES; do
     curl -Ssf \
