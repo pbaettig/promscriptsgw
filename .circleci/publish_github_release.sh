@@ -9,12 +9,18 @@ if [[ -z $FILES ]]; then
     exit 1
 fi
 
+if [[ -z $CIRCLE_TAG]]; then
+    tag="${CIRCLE_SHA1:0:7}"
+    name="${CIRCLE_SHA1:0:7}"
+else
+    tag="${CIRCLE_TAG}"
+    name="${CIRCLE_TAG}"
 
 upload_url=$(curl -Ssf -d"
 {
-    \"tag_name\": \"$CIRCLE_TAG\",
+    \"tag_name\": \"$tag\",
     \"target_commitish\": \"${CIRCLE_BRANCH:-master}\",
-    \"name\": \"$CIRCLE_TAG\",
+    \"name\": \"$name\",
     \"body\": \"$RELEASE_BODY\",
     \"draft\": ${DRAFT:-true},
     \"prerelease\": false
