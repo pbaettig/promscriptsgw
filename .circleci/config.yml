@@ -18,14 +18,18 @@ jobs:
           keys:
             - prometheus-{{ checksum "/go/pkg/linux_amd64/github.com/prometheus/client_golang/prometheus.a" }}
 
-      - run: |
+      - run:
+          name: install dependencies
+          command: |
           go get -v github.com/sirupsen/logrus \
           github.com/prometheus/client_golang/prometheus/promhttp \
           github.com/prometheus/client_golang/prometheus \
           github.com/konsorten/go-windows-terminal-sequences
   
       - run: pwd; ls -lah
-      - run: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1:0:7}\"/g" /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/version.go
+      - run:
+          name: update version in source
+          command: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1:0:7}\"/g" /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/version.go
       
       - run:
           name: Build linux binaries
