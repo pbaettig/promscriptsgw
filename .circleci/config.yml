@@ -28,17 +28,17 @@ jobs:
       - run: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1:0:7}\"/g" /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/version.go
       
       - run: go build -o promscriptsgw_linux_amd64 /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/*.go
-        environment:
-          GOOS: linux
-          GOARCH: amd64
+          environment:
+            GOOS: linux
+            GOARCH: amd64
       - run: go build -o promscriptsgw_darwin_amd64 /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/*.go
-        environment:
-          GOOS: darwin
-          GOARCH: amd64
+          environment:
+            GOOS: darwin
+            GOARCH: amd64
       - run: go build -o promscriptsgw_windows_amd64 /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/*.go
-        environment:
-          GOOS: windows
-          GOARCH: amd64
+          environment:
+            GOOS: windows
+            GOARCH: amd64
       
       - save_cache: 
           key: logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
