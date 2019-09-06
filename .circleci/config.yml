@@ -20,9 +20,9 @@ jobs:
 
       - run: go get -v github.com/sirupsen/logrus github.com/prometheus/client_golang/prometheus/promhttp github.com/prometheus/client_golang/prometheus
       - run: pwd; ls -lah
-      - run: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1}\"/g" cmd/promscriptsgw/version.go
+      - run: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1}\"/g" /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/version.go
       
-      - run: go build -o promscriptsgw cmd/promscriptsgw/*.go
+      - run: go build -o promscriptsgw /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/*.go
 
       - save_cache: 
           key: logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
