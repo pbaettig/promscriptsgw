@@ -56,19 +56,17 @@ jobs:
           paths:
             - /go/pkg/linux_amd64/github.com/prometheus/client_golang/
   
-  deploy:
-
 
 workflows:
   version: 2
   build-workflow:
     jobs:
       - build
-      - deploy:
-          requires:
-            - build
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
+      # - deploy:
+      #     requires:
+      #       - build
+      #     filters:
+      #       tags:
+      #         only: /^v.*/
+      #       branches:
+      #         ignore: /.*/
