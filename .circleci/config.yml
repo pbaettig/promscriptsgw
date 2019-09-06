@@ -55,6 +55,7 @@ jobs:
           root: .
           paths:
             - promscriptsgw_*
+            - .circleci/publish_github_release.sh
 
       - save_cache: 
           key: logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
@@ -71,12 +72,18 @@ jobs:
     steps:
       - run:
           name: create workspace folder
-          command: mkdir /tmp/builds
+          command: mkdir /tmp/ws
       - attach_workspace:
-          at: /tmp/builds
+          at: /tmp/ws
       - run:
-          name: list builds
-          command: ls -lah /tmp/builds
+          name: list workspace
+          command: ls -lah /tmp/ws
+
+      - run: bash /tmp/ws/publish_github_release.sh
+          environment:
+            DRAFT: "true"
+            FILES: "/tmp/ws/promscriptsgw_*"
+            RELEASE_BODY: "This release was created automatically by CircleCI"
     
 
 workflows:
