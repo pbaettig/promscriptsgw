@@ -56,8 +56,8 @@ jobs:
       - persist_to_workspace:
           root: /
           paths:
-            - promscriptsgw_*
-            - .circleci/publish_github_release.sh
+            - home/circleci/project/promscriptsgw_*
+            - go/src/github.com/pbaettig/promscriptsgw/.circleci/publish_github_release.sh
 
       - save_cache: 
           key: logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
