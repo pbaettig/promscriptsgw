@@ -18,12 +18,28 @@ jobs:
           keys:
             - prometheus-{{ checksum "/go/pkg/linux_amd64/github.com/prometheus/client_golang/prometheus.a" }}
 
-      - run: go get -v github.com/sirupsen/logrus github.com/prometheus/client_golang/prometheus/promhttp github.com/prometheus/client_golang/prometheus
+      - run: |
+          go get -v github.com/sirupsen/logrus \
+          github.com/prometheus/client_golang/prometheus/promhttp \
+          github.com/prometheus/client_golang/prometheus \
+          github.com/konsorten/go-windows-terminal-sequences
+  
       - run: pwd; ls -lah
-      - run: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1}\"/g" /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/version.go
-      - run: cat /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/version.go
-      - run: go build -o promscriptsgw /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/*.go
-
+      - run: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1:0:7}\"/g" /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/version.go
+      
+      - run: go build -o promscriptsgw_linux_amd64 /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/*.go
+        environment:
+          GOOS: linux
+          GOARCH: amd64
+      - run: go build -o promscriptsgw_darwin_amd64 /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/*.go
+        environment:
+          GOOS: darwin
+          GOARCH: amd64
+      - run: go build -o promscriptsgw_windows_amd64 /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/*.go
+        environment:
+          GOOS: windows
+          GOARCH: amd64
+      
       - save_cache: 
           key: logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
           paths:
@@ -33,9 +49,20 @@ jobs:
           key: prometheus-{{ checksum "/go/pkg/linux_amd64/github.com/prometheus/client_golang/prometheus.a" }}
           paths:
             - /go/pkg/linux_amd64/github.com/prometheus/client_golang/
+  
+  deploy:
+
 
 workflows:
   version: 2
   build-workflow:
     jobs:
       - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
