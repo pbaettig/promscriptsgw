@@ -15,6 +15,7 @@ if [[ -z $CIRCLE_TAG]]; then
 else
     tag="${CIRCLE_TAG}"
     name="${CIRCLE_TAG}"
+fi
 
 upload_url=$(curl -Ssf -d"
 {
