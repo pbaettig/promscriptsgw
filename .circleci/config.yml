@@ -51,10 +51,10 @@ jobs:
             GOOS: windows
             GOARCH: amd64
       
-      - run: ls -lah
+      - run: pwd; ls -lah
 
       - persist_to_workspace:
-          root: .
+          root: /
           paths:
             - promscriptsgw_*
             - .circleci/publish_github_release.sh
