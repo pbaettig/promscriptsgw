@@ -51,6 +51,11 @@ jobs:
             GOOS: windows
             GOARCH: amd64
       
+      - persist_to_workspace:
+          root: .
+          paths:
+            - promscriptsgw_*
+
       - save_cache: 
           key: logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
           paths:
@@ -60,16 +65,25 @@ jobs:
           key: prometheus-{{ checksum "/go/pkg/linux_amd64/github.com/prometheus/client_golang/prometheus.a" }}
           paths:
             - /go/pkg/linux_amd64/github.com/prometheus/client_golang/
-  
+  publish:
+    docker:
+      - image: circleci/golang:1.12 # because it has curl
+    steps:
+    - attach_workspace:
+        at: /builds
+      - run:
+          name: list builds
+          command: ls -lah /builds
+    
 
 workflows:
   version: 2
   build-workflow:
     jobs:
       - build
-      # - publish:
-      #     requires:
-      #       - build
+      - publish:
+          requires:
+            - build
       #     filters:
       #       tags:
       #         only: /^v.*/
