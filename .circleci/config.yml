@@ -4,6 +4,8 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.12
+        environment:
+          GOPATH: /home/circleci/project
     steps:
       - checkout
       - restore_cache:
