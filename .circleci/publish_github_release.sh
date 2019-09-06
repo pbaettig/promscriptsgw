@@ -9,21 +9,12 @@ if [[ -z $FILES ]]; then
     exit 1
 fi
 
-echo "
-{
-    \"tag_name\": \"$TAG_NAME\",
-    \"target_commitish\": \"${CIRCLECI_BRANCH:-master}\",
-    \"name\": \"$TAG_NAME\",
-    \"body\": \"$RELEASE_BODY\",
-    \"draft\": ${DRAFT:-true},
-    \"prerelease\": false
-}"
 
 upload_url=$(curl -Ssf -d"
 {
-    \"tag_name\": \"$TAG_NAME\",
-    \"target_commitish\": \"${CIRCLECI_BRANCH:-master}\",
-    \"name\": \"$TAG_NAME\",
+    \"tag_name\": \"$CIRCLE_TAG\",
+    \"target_commitish\": \"${CIRCLE_BRANCH:-master}\",
+    \"name\": \"$CIRCLE_TAG\",
     \"body\": \"$RELEASE_BODY\",
     \"draft\": ${DRAFT:-true},
     \"prerelease\": false
