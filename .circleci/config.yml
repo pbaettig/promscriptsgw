@@ -1,0 +1,39 @@
+
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
+      
+      - restore_cache:
+          keys:
+            - prometheus-{{ checksum "/go/pkg/linux_amd64/github.com/prometheus/client_golang/prometheus.a" }}
+
+      - run: go get -v github.com/sirupsen/logrus github.com/prometheus/client_golang/prometheus/promhttp github.com/prometheus/client_golang/prometheus
+
+      - run: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1}\"/g" version.go
+
+      - run: cd /go/src/github.com/promscriptsgw/cmd; go build -o promscriptsgw *.go
+
+      - save_cache: 
+          keys:
+            - logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
+          paths:
+            - /go/pkg/linux_amd64/github.com/sirupsen
+      
+      - save_cache:
+          keys:
+            - prometheus-{{ checksum "/go/pkg/linux_amd64/github.com/prometheus/client_golang/prometheus.a" }}
+          paths:
+            - /go/pkg/linux_amd64/github.com/prometheus/client_golang/
+
+workflows:
+  version: 2
+  build-workflow:
+    jobs:
+      - build
