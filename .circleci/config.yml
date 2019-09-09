@@ -11,12 +11,12 @@ jobs:
           name: create folder structure
           command: mkdir -p /go/src/github.com/pbaettig/promscriptsgw
       
+      - checkout:
+          path: /go/src/github.com/pbaettig/promscriptsgw
+
       - restore_cache:
           keys:
             - go-packages-{{ checksum "/go/src/github.com/pbaettig/promscriptsgw/.circleci/go_packages" }}
- 
-      - checkout:
-          path: /go/src/github.com/pbaettig/promscriptsgw
 
       - run: env
       
