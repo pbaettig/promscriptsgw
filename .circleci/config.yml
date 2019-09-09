@@ -60,10 +60,11 @@ jobs:
           command: cp /go/src/github.com/pbaettig/promscriptsgw/.circleci/publish_github_release.sh .
     
       - persist_to_workspace:
-          root: .
+          root: /go/src/github.com/pbaettig/promscriptsgw
           paths:
-            - promscriptsgw_*
-            - publish_github_release.sh
+            # persist built binaries to workspace
+            - cmd/promscriptsgw/promscriptsgw_*
+            - .circleci/publish_github_release.sh
 
       - save_cache: 
           key: go-packages-{{ checksum "/go/src/github.com/pbaettig/promscriptsgw/.circleci/go_packages" }}
