@@ -18,6 +18,10 @@ jobs:
           keys:
             - go-packages-{{ checksum "/go/src/github.com/pbaettig/promscriptsgw/.circleci/go_packages" }}
       
+      - run:
+          name: delete cached promscriptsgw code
+          command: rm -rf /go/src/github.com/pbaettig/promscriptsgw
+ 
       - run: env
       
       - run:
@@ -56,20 +60,27 @@ jobs:
             GOARCH: amd64
       
       - run:
+          name: copy binaries to workspace
+          working_directory: /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw
+          command: cp promscriptsgw_* /home/circleci
+
+      - run:
           name: copy GitHub release script
-          command: cp /go/src/github.com/pbaettig/promscriptsgw/.circleci/publish_github_release.sh .
+          working_directory: /go/src/github.com/pbaettig/promscriptsgw
+          command: cp .circleci/publish_github_release.sh /home/circleci/
     
       - persist_to_workspace:
-          root: /go/src/github.com/pbaettig/promscriptsgw
+          root: /home/circleci
           paths:
             # persist built binaries to workspace
-            - cmd/promscriptsgw/promscriptsgw_*
-            - .circleci/publish_github_release.sh
+            - promscriptsgw_*
+            - publish_github_release.sh
 
       - save_cache: 
           key: go-packages-{{ checksum "/go/src/github.com/pbaettig/promscriptsgw/.circleci/go_packages" }}
           paths:
             - /go/pkg
+            - /go/src
 
   publish:
     docker:
