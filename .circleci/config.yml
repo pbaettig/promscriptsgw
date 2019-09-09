@@ -10,43 +10,47 @@ jobs:
       - run:
           name: create folder structure
           command: mkdir -p /go/src/github.com/pbaettig/promscriptsgw
+      
       - checkout:
           path: /go/src/github.com/pbaettig/promscriptsgw
-      - restore_cache:
-          keys:
-            - logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
       
       - restore_cache:
           keys:
-            - prometheus-{{ checksum "/go/pkg/linux_amd64/github.com/prometheus/client_golang/prometheus.a" }}
+            - go-packages-{{ checksum "/go/src/github.com/pbaettig/promscriptsgw/.circleci/go_packages" }}
+      
       - run: env
+      
       - run:
           name: install dependencies
+          working_directory: /go/src/github.com/pbaettig/promscriptsgw
           command: |
-            go get -v github.com/sirupsen/logrus \
-            github.com/prometheus/client_golang/prometheus/promhttp \
-            github.com/prometheus/client_golang/prometheus \
-            github.com/konsorten/go-windows-terminal-sequences
+            grep -v '^#' <.circleci/go_packages | xargs go get -v 
   
       - run:
           name: update version in source
-          command: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1:0:7}\"/g" /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/version.go
+          working_directory: /go/src/github.com/pbaettig/promscriptsgw
+          command: sed -r -i "s/version = \".+\"/version = \"${CIRCLE_SHA1:0:7}\"/g" cmd/promscriptsgw/version.go
       
       - run:
           name: build linux binaries
-          command: go build -o promscriptsgw_linux_amd64 /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/*.go
+          working_directory: /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw
+          command: go build -o promscriptsgw_linux_amd64 *.go
           environment:
             GOOS: linux
             GOARCH: amd64
+      
       - run:
           name:  build OSX binaries 
-          command: go build -o promscriptsgw_darwin_amd64 /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/*.go
+          working_directory: /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw
+          command: go build -o promscriptsgw_darwin_amd64 *.go
           environment:
             GOOS: darwin
             GOARCH: amd64
+      
       - run:
           name: build windows binaries
-          command: go build -o promscriptsgw_windows_amd64 /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw/*.go
+          working_directory: /go/src/github.com/pbaettig/promscriptsgw/cmd/promscriptsgw
+          command: go build -o promscriptsgw_windows_amd64 *.go
           environment:
             GOOS: windows
             GOARCH: amd64
@@ -62,14 +66,10 @@ jobs:
             - publish_github_release.sh
 
       - save_cache: 
-          key: logrus-{{ checksum "/go/pkg/linux_amd64/github.com/sirupsen/logrus.a" }}
+          key: go-packages-{{ checksum "/go/src/github.com/pbaettig/promscriptsgw/.circleci/go_packages" }}
           paths:
-            - /go/pkg/linux_amd64/github.com/sirupsen
-      
-      - save_cache:
-          key: prometheus-{{ checksum "/go/pkg/linux_amd64/github.com/prometheus/client_golang/prometheus.a" }}
-          paths:
-            - /go/pkg/linux_amd64/github.com/prometheus/client_golang/
+            - /go/pkg
+
   publish:
     docker:
       - image: circleci/golang:1.12 # because it has curl

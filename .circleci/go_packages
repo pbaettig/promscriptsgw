@@ -1,0 +1,5 @@
+# Version 1
+github.com/sirupsen/logrus
+github.com/prometheus/client_golang/prometheus/promhttp
+github.com/prometheus/client_golang/prometheus
+github.com/konsorten/go-windows-terminal-sequences
