@@ -5,7 +5,7 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 if [[ -z $FILES ]]; then
-    echo 'ERROR no $FILE specified'
+    echo 'ERROR: no $FILES specified'
     exit 1
 fi
 
@@ -29,6 +29,12 @@ upload_url=$(curl -Ssf -d"
 | jq -r .upload_url | cut -d'{' -f1)
 
 sleep 2
+
+ls $FILES >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+    echo "$FILES: No files found to upload"
+    exit 1
+fi
 
 for file in $FILES; do
     echo "uploading $file ..."
