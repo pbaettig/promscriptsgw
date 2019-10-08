@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/pbaettig/promscriptsgw/internal/cfg"
-	"github.com/pbaettig/promscriptsgw/internal/pkg/scripts"
+	"github.com/pbaettig/promscriptsgw/pkg/scripts"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
